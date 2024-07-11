@@ -97,3 +97,27 @@ exports.showAllCOurses=async (req,res)=>{
     }
 }
 
+exports.getCourseDetail=async (req,res)=>{
+    try{
+        const {courseId}=req.body;
+        if(!courseId){
+            return res.status(404).json({
+                success:false,
+                message:"Invalid request"
+            })
+        }
+        const courseDetails=await Course.findById(courseId).populate("User").populate("Section").populate("RatingAndReview").populate("Tag").exec();
+
+        return res.status(200).json({
+            success:true,
+            message:"Successfuly fetched Course details",
+            courseDetails
+        })
+    }
+    catch(error){
+        return res.status(500).json({
+            success:false,
+            message:"Could not fetch the Course details"
+        })
+    }
+}
