@@ -38,7 +38,7 @@ exports.auth=async (req,res,next)=>{
 }
 
 //isStudent
-expot.isStudent=async (req,res,next)=>{
+exports.isStudent=async (req,res,next)=>{
     try{
         if(req.user.accountType!=="Student"){
             return res.status(401).json({
@@ -57,7 +57,7 @@ expot.isStudent=async (req,res,next)=>{
 }
 
 //isInstuctor
-expot.isInstructor=async (req,res,next)=>{
+exports.isInstructor=async (req,res,next)=>{
     try{
         if(req.user.accountType!=="Instructor"){
             return res.status(401).json({
@@ -76,7 +76,7 @@ expot.isInstructor=async (req,res,next)=>{
 }
 
 //isAdmin
-expot.isAdmin=async (req,res,next)=>{
+exports.isAdmin=async (req,res,next)=>{
     try{
         if(req.user.accountType!=="Admin"){
             return res.status(401).json({

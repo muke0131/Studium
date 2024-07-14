@@ -2,6 +2,7 @@
 const Profile=require("../models/ProfileModel");
 const User=require("../models/UserModel");
 const Course=require("../models/CourseModel");
+const {uploadImageToCloudinary}=require("../utils/imageUpload")
 
 exports.updateProfile=async (req,res)=>{
     try{
@@ -18,7 +19,7 @@ exports.updateProfile=async (req,res)=>{
         //find profile
         const userDetails = await User.findById(id);
         const profileId=userDetails.additionalDetails;
-        const profileDetails=await Profile(profileId);
+        const profileDetails=await Profile.findById(profileId);
         //update profile
         profileDetails.dateOfBirth=dateOfBirth;
         profileDetails.about=about;
@@ -81,11 +82,12 @@ exports.getAllUserDetails=async (req,res)=>{
     try{
         const id=req.user.id;
 
-        const userDetails=await User.findById(id).populate("additionalDetails").exec()
+        const userDetails=await User.findById(id).populate("additionalDetails").exec();
 
         return res.status(200).json({
             success:true,
-            message:"User data fetched successfully"
+            message:"User data fetched successfully",
+            userDetails
         })
     }
     catch(error){
@@ -93,5 +95,59 @@ exports.getAllUserDetails=async (req,res)=>{
             success:false,
             message:error.message
         })
+    }
+}
+
+exports.getEnrolledCourses=async (req,res)=>{
+    try{
+        const id=req.user.id;
+        const userDetails=await User.findOne({_id:id}).populate("courses").exec()
+
+        if (!userDetails) {
+            return res.status(400).json({
+              success: false,
+              message: `Could not find user with id: ${userDetails}`,
+            })
+          }
+        return res.status(200).json({
+            success:true,
+            message:"User enrolled courses fetched successfully",
+            data:userDetails.courses
+        })
+    }
+    catch(error){
+        return res.status(500).json({
+            success:false,
+            message:error.message
+        })
+    }
+}
+
+exports.updateDisplayPicture=async (req,res)=>{
+    try{
+        const userId=req.user.id;
+        const profilePic=req.files.profilePic;
+        const image = await uploadImageToCloudinary(
+            profilePic,
+            process.env.FOLDER_NAME,
+            1000,
+            1000
+          )
+        console.log(image);
+        const updated=await User.findByIdAndUpdate({_id:userId},
+            {image:image.secure_url},
+            {new:true}
+        )
+        res.send({
+            success: true,
+            message: `Image Updated successfully`,
+            data: updated,
+          })
+    }
+    catch(error){
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+          })
     }
 }

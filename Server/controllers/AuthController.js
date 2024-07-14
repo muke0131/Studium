@@ -10,7 +10,7 @@ exports.sendOTP = async (req, res) => {
   try {
     const { email } = req.body;
 
-    const checkUserPresent = await User.findOne({ email });
+    const checkUserPresent = await User.findOne({ email :email});
 
     if (checkUserPresent) {
       return res.status(401).json({
@@ -37,8 +37,8 @@ exports.sendOTP = async (req, res) => {
 
     const otpPayload = { email, otp };
 
-    const otpBody = await OTP.create({ otpPayload });
-    console.log(otpBody);
+    console.log(otpPayload);
+    const otpBody = await OTP.create( otpPayload );
 
     res.status(200).json({
       success: true,
@@ -48,7 +48,7 @@ exports.sendOTP = async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: err.message,
     });
   }
 };
@@ -89,7 +89,7 @@ exports.signUp = async (req, res) => {
     }
 
     const existUser = await User.findOne({ email });
-    if (existingUser) {
+    if (existUser) {
       return res.status(400).json({
         success: false,
         message: "User is already registered",
@@ -99,14 +99,22 @@ exports.signUp = async (req, res) => {
     const recentOtp = await OTP.find({ email })
       .sort({ createdAt: -1 })
       .limit(1);
-    console.log(recentOtp);
 
-    if (recentOtp.length === 0) {
+    if(!recentOtp){
       return res.status(400).json({
         success: false,
         message: "OTP Not found",
       });
-    } else if (otp !== recentOtp) {
+    }
+    console.log(recentOtp[0].otp);
+    const sentOtp=recentOtp[0].otp;
+
+    if (sentOtp.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP Not found",
+      });
+    } else if (otp !== sentOtp) {
       return res.status(400).json({
         success: false,
         message: "Invalid OTP",
@@ -133,14 +141,14 @@ exports.signUp = async (req, res) => {
     });
 
     return res.status(200).json({
-      success: tru,
+      success: true,
       message: "User is Registered Successfully",
       user,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "User cannot be registered. Please try again",
+      message: "User cannot be registered. Please try again "+error.message,
     });
   }
 };

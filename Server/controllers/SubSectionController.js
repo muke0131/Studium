@@ -1,6 +1,6 @@
 const Section=require("../models/SectionModel");
 const SubSection=require("../models/SubSectionModel");
-const uploadImageToCloudinary=require("../utils/imageUpload")
+const {uploadImageToCloudinary}=require("../utils/imageUpload")
 
 exports.createSubSection=async (req,res)=>{
     try{
@@ -26,7 +26,7 @@ exports.createSubSection=async (req,res)=>{
             title:title,
             timeDuration:timeDuration,
             description:description,
-            videoUrl:uploadDetails.secute_url
+            videoUrl:uploadDetails.secure_url
         })
         //update subsection id in Section
 
@@ -35,7 +35,7 @@ exports.createSubSection=async (req,res)=>{
                 subSection:SubSectionDetails._id,
             }},
             {new:true}
-        );
+        ).populate("subSection");
         //return response
         return res.status(200).json({
             success:true,
@@ -67,7 +67,7 @@ exports.updateSubSection=async (req,res)=>{
             title:title,
             timeDuration:timeDuration,
             description:description,
-            videoUrl:uploadDetails.secute_url
+            videoUrl:uploadDetails.secure_url
         },{new:true});
         return res.status(200).json({
             success:true,

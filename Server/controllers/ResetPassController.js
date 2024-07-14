@@ -1,6 +1,7 @@
 const User=require("../models/UserModel");
 const mailSender=require("../utils/mailSender");
 const bcrypt=require("bcrypt")
+const crypto=require("crypto")
 
 //resetPassToken
 exports.resetPasswordToken=async (req,res)=>{
@@ -22,7 +23,8 @@ exports.resetPasswordToken=async (req,res)=>{
             },
             {new:true}
         );
-        const url=`http://localhost:3000/updat-password/${token}`;
+        const url=`http://localhost:3000/update-password/${token}`;
+        console.log(`token=${token}`)
         await mailSender(email,"Password Reset Link",
             `Password Reset Link : ${url}`
         );

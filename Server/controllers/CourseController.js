@@ -1,14 +1,14 @@
 const Course=require("../models/CourseModel");
-const Tag=require("../models/CategoryModel");
+const Category=require("../models/CategoryModel");
 const User=require("../models/UserModel");
-const {uploadImageToCloudinary}=require("../utils/imageUploader");
+const {uploadImageToCloudinary}=require("../utils/imageUpload");
 
 exports.createCourse=async (req,res)=>{
     try{
-        const {courseName,courseDescription,whatYouWillLearn,price,tag}=req.body;
+        const {courseName,courseDescription,whatYouWillLearn,price,tag,category,instructions="",status="Draft"}=req.body;
         const thumbnail=req.files.thumbnailImage;
 
-        if(!courseName||!courseDescription||!whatYouWillLearn||!price||!tag||!thumbnail){
+        if(!courseName||!courseDescription||!whatYouWillLearn||!price||!category||!thumbnail  || !category){
             return res.status(400).json({
                 success:false,
                 message:"All fields are required"
@@ -17,7 +17,9 @@ exports.createCourse=async (req,res)=>{
 
 
         const userId=req.user.id;
-        const instructorDetails=await User.findById({userId});
+        const instructorDetails = await User.findById(userId, {
+			accountType: "Instructor",
+		});
 
         if(!instructorDetails){
             return res.status(404).json({
@@ -26,24 +28,29 @@ exports.createCourse=async (req,res)=>{
             })
         }
 
-        const tagDetails=await Tag.findById({tag});
-        if(!tagDetails){
+        const categoryDetails=await Category.findById(category);
+        if(!categoryDetails){
             return res.status(404).json({
                 success:false,
-                message:"Tag details not found"
+                message:"Category details not found"
             })
         }
+
+        console.log(`category ${categoryDetails}`)
 
         const thumbnailImage=await uploadImageToCloudinary(thumbnail,process.env.FOLDER_NAME);
 
         const newCourse=await Course.create({
             courseName,
-            courseDescription,
-            instructor:instructorDetails._id,
-            whatYouWillLearn:whatYouWillLearn,
-            price,
-            tag:tagDetails._id,
-            thumbnail:thumbnailImage.secure_url
+			courseDescription,
+			instructor: instructorDetails._id,
+			whatYouWillLearn: whatYouWillLearn,
+			price,
+			tag: tag,
+			category: categoryDetails.id,
+			thumbnail: thumbnailImage.secure_url,
+			status: status,
+			instructions: instructions,
         });
 
         await User.findByIdAndUpdate(
@@ -55,6 +62,16 @@ exports.createCourse=async (req,res)=>{
             },
             {new:true}
         )
+
+        await Category.findByIdAndUpdate(
+			{ _id: category },
+			{
+				$push: {
+					course: newCourse._id,
+				},
+			},
+			{ new: true }
+		);
 
         return res.status(200).json({
             success:true,
@@ -71,7 +88,7 @@ exports.createCourse=async (req,res)=>{
     }
 }
 
-exports.showAllCOurses=async (req,res)=>{
+exports.showAllCourses=async (req,res)=>{
     try{
         const allCourses=await Course.find({},{
             courseName:true,
@@ -97,7 +114,7 @@ exports.showAllCOurses=async (req,res)=>{
     }
 }
 
-exports.getCourseDetail=async (req,res)=>{
+exports.getCourseDetails=async (req,res)=>{
     try{
         const {courseId}=req.body;
         if(!courseId){
@@ -106,7 +123,23 @@ exports.getCourseDetail=async (req,res)=>{
                 message:"Invalid request"
             })
         }
-        const courseDetails=await Course.findById(courseId).populate("User").populate("Section").populate("RatingAndReview").populate("Tag").exec();
+        const courseDetails=await Course.findById(courseId)
+        .populate({path:"instructor",populate:{path:"additionalDetails"}})
+        .populate("category")
+        .populate("ratingAndReviews")
+        .populate({
+            path:"courseContent",
+            populate:{
+                path:"subSection"
+            }
+        }).exec();
+
+        if(!courseDetails){
+            return res.status(400).json({
+                success:false,
+                message:`Could not find the course with ${courseId}`
+            })
+        }
 
         return res.status(200).json({
             success:true,
@@ -117,7 +150,7 @@ exports.getCourseDetail=async (req,res)=>{
     catch(error){
         return res.status(500).json({
             success:false,
-            message:"Could not fetch the Course details"
+            message:error.message
         })
     }
 }
